@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ぽん</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #121212;
+      --surface: #1e1e1e;
+      --surface-light: #2d2d2d;
+      --primary: #bb86fc;
+      --primary-light: #dbb2ff;
+      --text: #e0e0e0;
+      --text-secondary: #a0a0a0;
+      --danger: #cf6679;
+      --success: #4caf50;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .header {
+      position: sticky;
+      top: 0;
+      background: var(--surface);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .header-clock {
+      font-size: 1.2rem;
+      font-variant-numeric: tabular-nums;
+      margin-right: 20px;
+    }
+    .header-status {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-right: 20px;
+    }
+    .header-status.playing {
+      color: var(--success);
+    }
+    .header-status.paused {
+      color: var(--primary);
+    }
+    .header-meter {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .meter-bar {
+      width: 120px;
+      height: 20px;
+      background: var(--surface-light);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    .meter-fill {
+      height: 100%;
+      background: linear-gradient(to right, #00c853, #ffd600, #ff3d00);
+      width: 0%;
+      transition: width 0.05s linear;
+    }
+    .meter-label {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #000;
+      mix-blend-mode: difference;
+    }
+    .now-playing {
+      flex: 1;
+      margin: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .now-playing-title {
+      font-size: 1rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .now-playing-progress {
+      width: 100%;
+      height: 4px;
+      background: var(--surface-light);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .now-playing-progress-fill {
+      height: 100%;
+      background: var(--primary);
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    h1, h2 {
+      margin-top: 0;
+      color: var(--text);
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+    h2 {
+      font-size: 1.4rem;
+      margin-bottom: 16px;
+      border-left: 4px solid var(--primary);
+      padding-left: 12px;
+    }
+    button {
+      padding: 10px 16px;
+      margin: 4px;
+      border: none;
+      border-radius: 6px;
+      background: var(--primary);
+      color: var(--bg);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: var(--primary-light);
+    }
+    button:disabled {
+      background: #555;
+      color: #777;
+      cursor: not-allowed;
+    }
+    button.danger {
+      background: var(--danger);
+    }
+    button.danger:hover {
+      background: #e57373;
+    }
+    button.success {
+      background: var(--success);
+    }
+    button.success:hover {
+      background: #66bb6a;
+    }
+    input[type="file"] {
+      margin: 8px 0;
+      color: var(--text);
+    }
+    select {
+      padding: 8px 12px;
+      margin: 4px;
+      border-radius: 6px;
+      background: var(--surface-light);
+      color: var(--text);
+      border: 1px solid #444;
+    }
+    .playlist-selector {
+      margin-bottom: 16px;
+    }
+    .playlist-selector select {
+      margin-right: 8px;
+    }
+    .playlist-container {
+      display: flex;
+      gap: 20px;
+    }
+    .playlist-wrapper {
+      flex: 1;
+    }
+    .playlist {
+      margin-top: 16px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .playlist-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      margin-bottom: 8px;
+      background: var(--surface-light);
+      border-radius: 8px;
+      transition: transform 0.2s, background 0.2s;
+      cursor: grab;
+    }
+    .playlist-item:active {
+      cursor: grabbing;
+    }
+    .playlist-item.dragging {
+      opacity: 0.5;
+      transform: scale(0.98);
+    }
+    .playlist-item.selected {
+      background: #2a3c5a;
+    }
+    .playlist-item.playing {
+      background: #1b5e20;
+    }
+    .playlist-item .drag-handle {
+      margin-right: 12px;
+      color: var(--text-secondary);
+      cursor: grab;
+    }
+    .playlist-item .name {
+      flex: 1;
+      font-weight: 500;
+    }
+    .playlist-item .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .playlist-item .volume-slider {
+      width: 80px;
+    }
+    .playlist-item input[type="range"] {
+      width: 100%;
+    }
+    .playlist-item .volume-value {
+      min-width: 40px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    .playlist-item .start-time-input {
+      width: 60px;
+      padding: 4px;
+      border-radius: 4px;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid #444;
+      font-size: 0.9rem;
+    }
+    .status {
+      margin-top: 16px;
+      padding: 12px;
+      background: var(--surface-light);
+      border-radius: 8px;
+      font-weight: 500;
+    }
+    .progress-container {
+      margin-top: 16px;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--surface-light);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+    .progress-text {
+      margin-top: 8px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+    .next-info {
+      margin-top: 4px;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+    .eq-controls {
+      margin-top: 16px;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .eq-band {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .eq-band label {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    .eq-band input[type="range"] {
+      width: 120px;
+      height: 20px;
+    }
+    .eq-band span {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    .eq-presets {
+      margin-top: 16px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .eq-presets select {
+      margin-right: 8px;
+    }
+    .loop-controls {
+      margin-top: 16px;
+    }
+    .loop-controls label {
+      margin-right: 16px;
+      cursor: pointer;
+    }
+    .spectrum-container {
+      flex: 0 0 300px;
+    }
+    .spectrum-canvas {
+      width: 100%;
+      height: 60px;
+      background: var(--surface-light);
+      border-radius: 8px;
+    }
+    .upload-device-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      align-items: flex-end;
+    }
+    .upload-device-group > div {
+      flex: 1;
+      min-width: 200px;
+    }
+    .upload-device-group h2 {
+      font-size: 1.2rem;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-clock" id="headerClock">--:--:--.--</div>
+    <div class="header-status" id="headerStatus">停止中</div>
+    <div class="now-playing">
+      <div class="now-playing-title" id="nowPlayingTitle">再生中の曲はありません</div>
+      <div class="now-playing-progress">
+        <div class="now-playing-progress-fill" id="nowPlayingProgressFill"></div>
+      </div>
+    </div>
+    <div class="header-meter">
+      <div class="meter-bar">
+        <div class="meter-fill" id="meterFill"></div>
+        <div class="meter-label" id="meterLabel">- dB</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <h1><i class="fas fa-play-circle"></i> ぽん</h1>
+
+    <div class="card">
+      <div class="upload-device-group">
+        <div>
+          <h2><i class="fas fa-upload"></i> 音源アップロード</h2>
+          <input type="file" id="fileInput" accept="audio/*" multiple>
+          <button id="uploadBtn"><i class="fas fa-cloud-upload-alt"></i> アップロード</button>
+        </div>
+        <div>
+          <h2><i class="fas fa-speaker"></i> 再生デバイス選択</h2>
+          <select id="deviceSelect">
+            <option value="">デフォルトデバイス</option>
+          </select>
+          <button id="refreshDevicesBtn"><i class="fas fa-sync-alt"></i> デバイス一覧更新</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><i class="fas fa-list"></i> プレイリスト</h2>
+      <div class="playlist-selector">
+        <select id="playlistSelect"></select>
+        <button id="newPlaylistBtn"><i class="fas fa-plus"></i> 新規プレイリスト</button>
+        <button id="renamePlaylistBtn"><i class="fas fa-edit"></i> 名前変更</button>
+        <button id="deletePlaylistBtn" class="danger"><i class="fas fa-trash"></i> 削除</button>
+      </div>
+      <div class="playlist-container">
+        <div class="playlist-wrapper">
+          <div id="playlist" class="playlist"></div>
+          <div>
+            <button id="playSelectedBtn"><i class="fas fa-play"></i> 選択した曲を再生</button>
+            <button id="pauseBtn"><i class="fas fa-pause"></i> 一時停止</button>
+            <button id="resumeBtn"><i class="fas fa-play"></i> 再開</button>
+            <button id="stopAllBtn" class="danger"><i class="fas fa-stop"></i> 全停止 (Esc)</button>
+          </div>
+          <div class="loop-controls">
+            <label><input type="checkbox" id="loopAllCheckbox"> 全体ループ</label>
+            <label><input type="checkbox" id="loopOneCheckbox"> 個別ループ</label>
+          </div>
+          <div class="status" id="status">アプリを読み込みました。音源をアップロードしてください。</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+        <div class="spectrum-container">
+          <h2><i class="fas fa-chart-bar"></i> スペクトラムアナライザー</h2>
+          <canvas id="spectrumCanvas" class="spectrum-canvas"></canvas>
+        </div>
+      </div>
+    
+
+    <div class="card">
+      <h2><i class="fas fa-sliders-h"></i> EQ設定</h2>
+      <div class="eq-controls">
+        <div class="eq-band">
+          <label>Low</label>
+          <input type="range" id="eqLow" min="-12" max="12" step="0.5" value="0">
+          <span id="eqLowValue">0 dB</span>
+        </div>
+        <div class="eq-band">
+          <label>Mid</label>
+          <input type="range" id="eqMid" min="-12" max="12" step="0.5" value="0">
+          <span id="eqMidValue">0 dB</span>
+        </div>
+        <div class="eq-band">
+          <label>High</label>
+          <input type="range" id="eqHigh" min="-12" max="12" step="0.5" value="0">
+          <span id="eqHighValue">0 dB</span>
+        </div>
+      </div>
+      <div class="eq-presets">
+        <select id="eqPresetSelect">
+          <option value="">プリセットを選択</option>
+        </select>
+        <button id="saveEqPresetBtn"><i class="fas fa-save"></i> プリセット保存</button>
+        <button id="deleteEqPresetBtn" class="danger"><i class="fas fa-trash"></i> プリセット削除</button>
+        <button id="resetEqBtn"><i class="fas fa-undo"></i> EQリセット</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><i class="fas fa-chart-bar"></i> 再生進捗</h2>
+      <div class="progress-container">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">-</div>
+        <div class="next-info" id="nextInfo">-</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
