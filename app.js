@@ -389,8 +389,8 @@ function renderPlaylist() {
         <input type="range" class="volume-slider" min="0" max="2" step="0.01" value="${item.volume}">
         <div class="volume-value">${Math.round(item.volume * 100)}%</div>
         <input type="number" class="start-time-input" min="0" step="0.1" value="${item.startTime}" placeholder="開始秒数">
-        <label><input type="checkbox" class="loop-checkbox" ${item.loop ? 'checked' : ''}> ループ</label>
-        <button class="play-from-here-btn" data-index="${index}"><i class="fas fa-play"></i> ここから再生</button>
+        <label><input type="checkbox" class="loop-checkbox" ${item.loop ? 'checked' : ''}> 🔂</label>
+        <button class="play-from-here-btn" data-index="${index}"><i class="fas fa-play"></i> </button>
         <button class="delete-btn danger" data-id="${item.id}"><i class="fas fa-trash"></i></button>
       </div>
     `;
