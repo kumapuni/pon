@@ -854,7 +854,7 @@ function startMeter() {
 
     // 音量をdBに変換（+12dBを最大とする）
     const dB = volumeToDB(maxVolume);
-    const normalizedDB = Math.min(12, Math.max(-30, dB)); // -30〜+12dBにクリップ
+    const normalizedDB = Math.min(12, Math.max(-60, dB)); // -30〜+12dBにクリップ
 
     // ピークホールド更新
     if (normalizedDB > state.meterPeak) {
